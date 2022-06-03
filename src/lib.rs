@@ -50,36 +50,38 @@
 //! 
 //! The `.with_default_port(...)` function will check if the port number is specified and add it if necessary.
 //! 
-use std::net::{ToSocketAddrs, SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Addr};
+maybe_async::content! {
+
+#![maybe_async::default(
+//    disable,
+    idents(
+        async_std(sync="std", async),
+        ToSocketAddrs(use),
+        ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync"),
+    )
+)]
+
+use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Addr};
+
+#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+use async_std::net::ToSocketAddrs;
 
 /// A trait to use instead of ToSocketAddrs
+#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
 pub trait ToSocketAddrsWithDefaultPort {
     type Inner: Sized + ToSocketAddrs;
-    fn with_default_port(&self, default_port: u16) -> ToSocketAddrsWrapper<Self::Inner>;
+    fn with_default_port(&self, default_port: u16) -> Self::Inner;
 }
-
-
-/// A wrapper object
-pub struct ToSocketAddrsWrapper<T> where T: Sized {
-    inner: T,
-}
-
-impl<T> ToSocketAddrs for ToSocketAddrsWrapper<T> where T: Sized + ToSocketAddrs {
-    type Iter = <T as ToSocketAddrs>::Iter;
-    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
-        <T as ToSocketAddrs>::to_socket_addrs(&self.inner)
-    } 
-}
-
 
 
 // This types already hold port inside (default port must be ignored)
 macro_rules! std_impl {
     ($ty:ty) => {
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = Self;
-            fn with_default_port(&self, _default_port: u16) -> ToSocketAddrsWrapper<Self::Inner> {
-                ToSocketAddrsWrapper { inner: *self }
+            fn with_default_port(&self, _default_port: u16) -> Self::Inner {
+                *self
             } 
         }
     }
@@ -96,10 +98,11 @@ std_impl!((Ipv6Addr, u16));
 // This types hold IP address only, so we always have to use default port
 macro_rules! tuple_impl {
     ($ty:ty) => {
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = (Self, u16);
-            fn with_default_port(&self, default_port: u16) -> ToSocketAddrsWrapper<Self::Inner> {
-                ToSocketAddrsWrapper { inner: (*self, default_port) }
+            fn with_default_port(&self, default_port: u16) -> Self::Inner {
+                (*self, default_port)
             } 
         }
     }
@@ -110,16 +113,18 @@ tuple_impl!(Ipv4Addr);
 tuple_impl!(Ipv6Addr);
 
 
+#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
 impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
     type Inner = &'s [SocketAddr];
-    fn with_default_port(&self, _default_port: u16) -> ToSocketAddrsWrapper<Self::Inner> {
-        ToSocketAddrsWrapper { inner: self }
+    fn with_default_port(&self, _default_port: u16) -> Self::Inner {
+        self
     } 
 }
 
+#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
 impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToSocketAddrsWithDefaultPort {
     type Inner = <T as ToSocketAddrsWithDefaultPort>::Inner;
-    fn with_default_port(&self, default_port: u16) -> ToSocketAddrsWrapper<Self::Inner> {
+    fn with_default_port(&self, default_port: u16) -> Self::Inner {
         (**self).with_default_port( default_port )
     } 
 }
@@ -127,9 +132,11 @@ impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToS
 
 macro_rules! str_impl {
     ($ty:ty) => {
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = String;
-            fn with_default_port(&self, default_port: u16) -> ToSocketAddrsWrapper<Self::Inner> {
+
+            fn with_default_port(&self, default_port: u16) -> Self::Inner {
                 let inner = if let Some(pcolon) = self.rfind(":") {
                     if let Some(pbracket) = self.rfind("]") {
                         if pbracket < pcolon {
@@ -153,7 +160,7 @@ macro_rules! str_impl {
                     // "__", no colons => IPv4 without port
                     format!("{}:{}", self, default_port)
                 };
-                ToSocketAddrsWrapper { inner }
+                inner
             } 
         }
     }
@@ -167,13 +174,23 @@ str_impl!(String);
 mod tests {
     use super::*;
 
+    #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+    #[maybe_async::only_if(sync)]
     fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
         let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().unwrap().map(|a| a.to_string()).collect();
         v.sort();
         v
     }
 
-    #[test]
+    #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+    #[maybe_async::only_if(async)]
+    async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().unwrap().map(|a| a.to_string()).collect();
+        v.sort();
+        v
+    }
+
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     fn ipv4() {
         // IPv4 without port
         assert_eq!(into_vec("8.8.8.8", 443),            ["8.8.8.8:443"]);
@@ -209,4 +226,6 @@ mod tests {
         // DNS with port (must be resolved to IPv6)
         assert_eq!(into_vec("dns64.dns.google:443", 53),    ["[2001:4860:4860::6464]:443", "[2001:4860:4860::64]:443"]);
     }
+}
+
 }
