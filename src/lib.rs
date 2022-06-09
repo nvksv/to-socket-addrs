@@ -58,6 +58,9 @@ maybe_async::content! {
         async_std(sync="std", async),
         ToSocketAddrs(use),
         ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync"),
+        into_vec(fn),
+        str(sync, async),
+        String(sync, async),
     )
 )]
 
@@ -77,7 +80,7 @@ pub trait ToSocketAddrsWithDefaultPort {
 // This types already hold port inside (default port must be ignored)
 macro_rules! std_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = Self;
             fn with_default_port(&self, _default_port: u16) -> Self::Inner {
@@ -98,7 +101,7 @@ std_impl!((Ipv6Addr, u16));
 // This types hold IP address only, so we always have to use default port
 macro_rules! tuple_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = (Self, u16);
             fn with_default_port(&self, default_port: u16) -> Self::Inner {
@@ -132,7 +135,7 @@ impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToS
 
 macro_rules! str_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = String;
 
@@ -171,7 +174,12 @@ str_impl!(String);
 
 
 #[cfg(test)]
-mod tests {
+mod test {
+    // #[cfg(feature="async")]
+    // use async_attributes::test;
+
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
@@ -185,46 +193,46 @@ mod tests {
     #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
     #[maybe_async::only_if(async)]
     async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
-        let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().unwrap().map(|a| a.to_string()).collect();
+        let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().await.unwrap().map(|a| a.to_string()).collect();
         v.sort();
         v
     }
 
     #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
-    fn ipv4() {
+    async fn ipv4() {
         // IPv4 without port
-        assert_eq!(into_vec("8.8.8.8", 443),            ["8.8.8.8:443"]);
+        assert_eq!(into_vec("8.8.8.8", 443).await,            ["8.8.8.8:443"]);
         // IPv4 with port
-        assert_eq!(into_vec("8.8.8.8:8080", 443),       ["8.8.8.8:8080"]);
+        assert_eq!(into_vec("8.8.8.8:8080", 443).await,       ["8.8.8.8:8080"]);
     }
 
-    #[test]
-    fn ipv6() {
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    async fn ipv6() {
         // IPv6 without port
-        assert_eq!(into_vec("::1", 80),                 ["[::1]:80"]);
-        assert_eq!(into_vec("[::1]", 80),               ["[::1]:80"]);
-        assert_eq!(into_vec("[::1]:31337", 80),         ["[::1]:31337"]);
+        assert_eq!(into_vec("::1", 80).await,                 ["[::1]:80"]);
+        assert_eq!(into_vec("[::1]", 80).await,               ["[::1]:80"]);
+        assert_eq!(into_vec("[::1]:31337", 80).await,         ["[::1]:31337"]);
     }
 
-    #[test]
-    fn dns_ipv4() {
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    async fn dns_ipv4() {
         // DNS without port (must be resolved to IPv4)
-        assert_eq!(into_vec("dns.google", 5353),        ["8.8.4.4:5353", "8.8.8.8:5353"]);
-        assert_eq!(into_vec("dns.quad9.net", 53),       ["149.112.112.112:53", "9.9.9.9:53"]);
-        assert_eq!(into_vec("dns11.quad9.net", 3389),   ["149.112.112.11:3389", "9.9.9.11:3389"]);
+        assert_eq!(into_vec("dns.google", 5353).await,        ["8.8.4.4:5353", "8.8.8.8:5353"]);
+        assert_eq!(into_vec("dns.quad9.net", 53).await,       ["149.112.112.112:53", "9.9.9.9:53"]);
+        assert_eq!(into_vec("dns11.quad9.net", 3389).await,   ["149.112.112.11:3389", "9.9.9.11:3389"]);
         // DNS with port (must be resolved to IPv4)
-        assert_eq!(into_vec("dns.google:53", 8080),     ["8.8.4.4:53", "8.8.8.8:53"]);
-        assert_eq!(into_vec("dns.quad9.net:80", 53),    ["149.112.112.112:80", "9.9.9.9:80"]);
-        assert_eq!(into_vec("dns11.quad9.net:21", 3389),["149.112.112.11:21", "9.9.9.11:21"]);
+        assert_eq!(into_vec("dns.google:53", 8080).await,     ["8.8.4.4:53", "8.8.8.8:53"]);
+        assert_eq!(into_vec("dns.quad9.net:80", 53).await,    ["149.112.112.112:80", "9.9.9.9:80"]);
+        assert_eq!(into_vec("dns11.quad9.net:21", 3389).await,["149.112.112.11:21", "9.9.9.11:21"]);
     }
 
-    #[test]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[ignore]
-    fn dns_ipv6() {
+    async fn dns_ipv6() {
         // DNS without port (must be resolved to IPv6)
-        assert_eq!(into_vec("dns64.dns.google", 53),        ["[2001:4860:4860::6464]:53", "[2001:4860:4860::64]:53"]);
+        assert_eq!(into_vec("dns64.dns.google", 53).await,        ["[2001:4860:4860::6464]:53", "[2001:4860:4860::64]:53"]);
         // DNS with port (must be resolved to IPv6)
-        assert_eq!(into_vec("dns64.dns.google:443", 53),    ["[2001:4860:4860::6464]:443", "[2001:4860:4860::64]:443"]);
+        assert_eq!(into_vec("dns64.dns.google:443", 53).await,    ["[2001:4860:4860::6464]:443", "[2001:4860:4860::64]:443"]);
     }
 }
 
