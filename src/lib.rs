@@ -50,9 +50,9 @@
 //! 
 //! The `.with_default_port(...)` function will check if the port number is specified and add it if necessary.
 //! 
-maybe_async::content! {
+maybe_async_cfg::content! {
 
-#![maybe_async::default(
+#![maybe_async_cfg::default(
 //    disable,
     idents(
         async_std(sync="std", async),
@@ -66,11 +66,11 @@ maybe_async::content! {
 
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Addr};
 
-#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+#[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
 use async_std::net::ToSocketAddrs;
 
 /// A trait to use instead of ToSocketAddrs
-#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+#[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
 pub trait ToSocketAddrsWithDefaultPort {
     type Inner: Sized + ToSocketAddrs;
     fn with_default_port(&self, default_port: u16) -> Self::Inner;
@@ -80,7 +80,7 @@ pub trait ToSocketAddrsWithDefaultPort {
 // This types already hold port inside (default port must be ignored)
 macro_rules! std_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = Self;
             fn with_default_port(&self, _default_port: u16) -> Self::Inner {
@@ -101,7 +101,7 @@ std_impl!((Ipv6Addr, u16));
 // This types hold IP address only, so we always have to use default port
 macro_rules! tuple_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = (Self, u16);
             fn with_default_port(&self, default_port: u16) -> Self::Inner {
@@ -116,7 +116,7 @@ tuple_impl!(Ipv4Addr);
 tuple_impl!(Ipv6Addr);
 
 
-#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+#[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
 impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
     type Inner = &'s [SocketAddr];
     fn with_default_port(&self, _default_port: u16) -> Self::Inner {
@@ -124,7 +124,7 @@ impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
     } 
 }
 
-#[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+#[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
 impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToSocketAddrsWithDefaultPort {
     type Inner = <T as ToSocketAddrsWithDefaultPort>::Inner;
     fn with_default_port(&self, default_port: u16) -> Self::Inner {
@@ -135,7 +135,7 @@ impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToS
 
 macro_rules! str_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
+        #[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = String;
 
@@ -182,23 +182,23 @@ mod test {
 
     use super::*;
 
-    #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
-    #[maybe_async::only_if(sync)]
+    #[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
+    #[maybe_async_cfg::only_if(sync)]
     fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
         let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().unwrap().map(|a| a.to_string()).collect();
         v.sort();
         v
     }
 
-    #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
-    #[maybe_async::only_if(async)]
+    #[maybe_async_cfg::maybe(async(feature="async"), sync(feature="sync"))]
+    #[maybe_async_cfg::only_if(async)]
     async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
         let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().await.unwrap().map(|a| a.to_string()).collect();
         v.sort();
         v
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     async fn ipv4() {
         // IPv4 without port
         assert_eq!(into_vec("8.8.8.8", 443).await,            ["8.8.8.8:443"]);
@@ -206,7 +206,7 @@ mod test {
         assert_eq!(into_vec("8.8.8.8:8080", 443).await,       ["8.8.8.8:8080"]);
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     async fn ipv6() {
         // IPv6 without port
         assert_eq!(into_vec("::1", 80).await,                 ["[::1]:80"]);
@@ -214,7 +214,7 @@ mod test {
         assert_eq!(into_vec("[::1]:31337", 80).await,         ["[::1]:31337"]);
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     async fn dns_ipv4() {
         // DNS without port (must be resolved to IPv4)
         assert_eq!(into_vec("dns.google", 5353).await,        ["8.8.4.4:5353", "8.8.8.8:5353"]);
@@ -226,7 +226,7 @@ mod test {
         assert_eq!(into_vec("dns11.quad9.net:21", 3389).await,["149.112.112.11:21", "9.9.9.11:21"]);
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[ignore]
     async fn dns_ipv6() {
         // DNS without port (must be resolved to IPv6)

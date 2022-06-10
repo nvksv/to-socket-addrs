@@ -1,6 +1,6 @@
 [package]
 name = "to-socket-addrs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = [ "Sergey V. Kokorin <nvksv@nvksv.ru>" ]
 description = "A small std::net::ToSocketAddrs replacement to specify addresses without port"
@@ -19,10 +19,8 @@ include = [
 ]
 
 [dependencies]
-maybe-async = { path = "../maybe-async-rs", package = "maybe-async" }
+maybe-async-cfg = { git = "https://github.com/nvksv/maybe-async-cfg" }
 async-std = { version = "^1.10.0", optional = true }
-
-async-attributes = "1.1.2"
 
 [dev-dependencies]
 async-attributes = "1.1.2"
