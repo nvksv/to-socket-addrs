@@ -80,7 +80,7 @@ pub trait ToSocketAddrsWithDefaultPort {
 // This types already hold port inside (default port must be ignored)
 macro_rules! std_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = Self;
             fn with_default_port(&self, _default_port: u16) -> Self::Inner {
@@ -101,7 +101,7 @@ std_impl!((Ipv6Addr, u16));
 // This types hold IP address only, so we always have to use default port
 macro_rules! tuple_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = (Self, u16);
             fn with_default_port(&self, default_port: u16) -> Self::Inner {
@@ -135,7 +135,7 @@ impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToS
 
 macro_rules! str_impl {
     ($ty:ty) => {
-        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"), idents(async_std(sync="std", async),ToSocketAddrs(use),ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync")))]
+        #[maybe_async::maybe(async(feature="async"), sync(feature="sync"))]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = String;
 
