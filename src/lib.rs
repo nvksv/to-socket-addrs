@@ -67,7 +67,6 @@
 maybe_async_cfg::content! {
 
 #![maybe_async_cfg::default(
-//    disable,
     idents(
         async_std(sync="std", async, tokio="tokio"),
         ToSocketAddrs(use, sync, async="ToSocketAddrsAsync", tokio="ToSocketAddrsTokio"),
@@ -216,7 +215,7 @@ str_impl!(str);
 str_impl!(String);
 
 
-//#[cfg(test)]
+#[cfg(test)]
 mod test {
     use pretty_assertions::assert_eq;
 
@@ -253,7 +252,7 @@ mod test {
     )]
     #[maybe_async_cfg::only_if(tokio)]
     async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
-        let mut v: Vec<String> = vec![];
+        let mut v: Vec<String> = tokio::net::lookup_host(addr.with_default_port(default_port)).await.unwrap().map(|a| a.to_string()).collect();
         v.sort();
         v
     }
@@ -261,7 +260,7 @@ mod test {
     #[maybe_async_cfg::maybe(
         sync(key="sync", feature="sync", test), 
         async(key="async", feature="async", async_attributes::test),
-        async(feature="tokio", self="ipv_tokio")
+        async(key="tokio", feature="tokio", self="ipv4_tokio", tokio::test)
     )]
     async fn ipv4() {
         // IPv4 without port
