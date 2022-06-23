@@ -72,24 +72,24 @@ maybe_async_cfg::content! {
         async_std(sync="std", async, tokio="tokio"),
         ToSocketAddrs(use, sync, async="ToSocketAddrsAsync", tokio="ToSocketAddrsTokio"),
         ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync", tokio="ToSocketAddrsWithDefaultPortTokio"),
-        into_vec(fn),
+        into_vec(fn, tokio="into_vec_tokio"),
     )
 )]
 
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[maybe_async_cfg::maybe(
-    async(key="tokio", feature="tokio"), 
-    async(key="async", feature="async"), 
     sync(key="sync", feature="sync"),
+    async(key="async", feature="async"), 
+    async(key="tokio", feature="tokio"), 
 )]
 use async_std::net::ToSocketAddrs;
 
 /// A trait to use instead of ToSocketAddrs
 #[maybe_async_cfg::maybe(
-    async(key="tokio", feature="tokio"), 
-    async(key="async", feature="async"), 
     sync(key="sync", feature="sync"),
+    async(key="async", feature="async"), 
+    async(key="tokio", feature="tokio"), 
 )]
 pub trait ToSocketAddrsWithDefaultPort {
     type Inner: Sized + ToSocketAddrs;
@@ -102,9 +102,9 @@ macro_rules! std_impl {
     ($ty:ty) => {
         #[maybe_async_cfg::maybe(
             keep_self, 
-            async(key="tokio", feature="tokio"), 
-            async(key="async", feature="async"), 
             sync(key="sync", feature="sync"),
+            async(key="async", feature="async"), 
+            async(key="tokio", feature="tokio"), 
         )]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = Self;
@@ -128,9 +128,9 @@ macro_rules! tuple_impl {
     ($ty:ty) => {
         #[maybe_async_cfg::maybe(
             keep_self, 
-            async(key="tokio", feature="tokio"), 
-            async(key="async", feature="async"), 
             sync(key="sync", feature="sync"),
+            async(key="async", feature="async"), 
+            async(key="tokio", feature="tokio"), 
         )]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = (Self, u16);
@@ -147,9 +147,9 @@ tuple_impl!(Ipv6Addr);
 
 
 #[maybe_async_cfg::maybe(
-    async(key="tokio", feature="tokio"), 
-    async(key="async", feature="async"), 
     sync(key="sync", feature="sync"),
+    async(key="async", feature="async"), 
+    async(key="tokio", feature="tokio"), 
 )]
 impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
     type Inner = &'s [SocketAddr];
@@ -159,8 +159,9 @@ impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
 }
 
 #[maybe_async_cfg::maybe(
-    async(feature="async"), 
-    sync(feature="sync")
+    sync(key="sync", feature="sync"),
+    async(key="async", feature="async"), 
+    async(key="tokio", feature="tokio"), 
 )]
 impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToSocketAddrsWithDefaultPort {
     type Inner = <T as ToSocketAddrsWithDefaultPort>::Inner;
@@ -174,9 +175,9 @@ macro_rules! str_impl {
     ($ty:ty) => {
         #[maybe_async_cfg::maybe(
             keep_self,
-            async(key="tokio", feature="tokio"), 
-            async(key="async", feature="async"), 
             sync(key="sync", feature="sync"),
+            async(key="async", feature="async"), 
+            async(key="tokio", feature="tokio"), 
         )]
         impl ToSocketAddrsWithDefaultPort for $ty {
             type Inner = String;
@@ -215,16 +216,16 @@ str_impl!(str);
 str_impl!(String);
 
 
-#[cfg(test)]
+//#[cfg(test)]
 mod test {
     use pretty_assertions::assert_eq;
 
     use super::*;
 
     #[maybe_async_cfg::maybe(
+        sync(key="sync", feature="sync"),
         async(key="tokio", feature="tokio"), 
         async(key="async", feature="async"), 
-        sync(key="sync", feature="sync"),
     )]
     #[maybe_async_cfg::only_if(sync)]
     fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
@@ -234,9 +235,9 @@ mod test {
     }
 
     #[maybe_async_cfg::maybe(
-        async(key="tokio", feature="tokio"), 
-        async(key="async", feature="async"), 
         sync(key="sync", feature="sync"),
+        async(key="async", feature="async"), 
+        async(key="tokio", feature="tokio"), 
     )]
     #[maybe_async_cfg::only_if(async)]
     async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
@@ -246,9 +247,21 @@ mod test {
     }
 
     #[maybe_async_cfg::maybe(
+        sync(key="sync", feature="sync"),
+        async(key="async", feature="async"), 
+        async(key="tokio", feature="tokio"), 
+    )]
+    #[maybe_async_cfg::only_if(tokio)]
+    async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = vec![];
+        v.sort();
+        v
+    }
+
+    #[maybe_async_cfg::maybe(
         sync(key="sync", feature="sync", test), 
         async(key="async", feature="async", async_attributes::test),
-        async(key="tokio", feature="tokio", self="ipv4_tokio", tokio::test)
+        async(feature="tokio", self="ipv_tokio")
     )]
     async fn ipv4() {
         // IPv4 without port
