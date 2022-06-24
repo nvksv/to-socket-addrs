@@ -19,9 +19,7 @@ include = [
 ]
 
 [dependencies]
-# maybe-async-cfg = "0.1"
-maybe-async-cfg = { git = "https://github.com/nvksv/maybe-async-cfg.git", branch = "v0.2.0", features = ["no-debug"] }
-# maybe-async-cfg = { path = "../maybe-async-cfg" }
+maybe-async-cfg = { version = "0.2", features = ["no-debug"] }
 async-std = { version = "^1.10.0", optional = true }
 tokio = { version = "^1.19.2", features = ["net", "rt", "macros"], optional = true }
 

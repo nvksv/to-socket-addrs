@@ -1,3 +1,4 @@
+#![feature(doc_cfg)]
 //! # to-socket-addrs
 //!  
 //! A small replacement for `std::net::ToSocketAddrs` for specifying addresses without a port.
@@ -20,10 +21,25 @@
 //! specify the default port number using `.with_default_port(...)` when creating a stream or
 //! listener.
 //! 
-//! Asynchronous analogs are also supported:
+//! Asynchronous analogs are also supported (if the corresponding features are enabled):
 //! - use `ToSocketAddrsWithDefaultPortAsync` instead of `async_std::net::ToSocketAddrs`,
 //! - use `ToSocketAddrsWithDefaultPortTokio` instead of `tokio::net::ToSocketAddrs`.
 //!
+//! ## Features
+//! 
+//! - `sync` *(enabled by default)*
+//! 
+//!     Enables `ToSocketAddrsWithDefaultPort`.
+//! 
+//! - `async`
+//! 
+//!     Enables `ToSocketAddrsWithDefaultPortAsync`.
+//! 
+//! - `tokio`
+//! 
+//!     Enables `ToSocketAddrsWithDefaultPortTokio`.
+//! 
+//! 
 //! ## Explanation
 //!
 //! The standard library assumes explicit indication of the port number when creating a stream or
@@ -90,11 +106,10 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Add
 )]
 use async_std::net::ToSocketAddrs;
 
-/// A trait to use instead of ToSocketAddrs
 #[maybe_async_cfg::maybe(
-    sync(key="sync", feature="sync"),
-    async(key="async", feature="async"), 
-    async(key="tokio", feature="tokio"), 
+    sync(key="sync", feature="sync", inner(doc(cfg(feature="sync")), doc="A trait to use instead of `std::net::ToSocketAddrs`")),
+    async(key="async", feature="async", inner(doc(cfg(feature="async")), doc="A trait to use instead of `async_std::net::ToSocketAddrs`")), 
+    async(key="tokio", feature="tokio", inner(doc(cfg(feature="tokio")), doc="A trait to use instead of `tokio::net::ToSocketAddrs`")), 
 )]
 pub trait ToSocketAddrsWithDefaultPort {
     type Inner: Sized + ToSocketAddrs;
