@@ -81,6 +81,8 @@ maybe_async_cfg::content! {
 
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Addr};
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[maybe_async_cfg::maybe(
     sync(key="sync", feature="sync"),
     async(key="async", feature="async"), 
@@ -99,6 +101,7 @@ pub trait ToSocketAddrsWithDefaultPort {
     fn with_default_port(&self, default_port: u16) -> Self::Inner;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // This types already hold port inside (default port must be ignored)
 macro_rules! std_impl {
@@ -125,6 +128,7 @@ std_impl!((IpAddr, u16));
 std_impl!((Ipv4Addr, u16));
 std_impl!((Ipv6Addr, u16));
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // This types hold IP address only, so we always have to use default port
 macro_rules! tuple_impl {
@@ -148,6 +152,7 @@ tuple_impl!(IpAddr);
 tuple_impl!(Ipv4Addr);
 tuple_impl!(Ipv6Addr);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[maybe_async_cfg::maybe(
     sync(key="sync", feature="sync"),
@@ -161,6 +166,8 @@ impl<'s> ToSocketAddrsWithDefaultPort for &'s [SocketAddr] {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[maybe_async_cfg::maybe(
     sync(key="sync", feature="sync"),
     async(key="async", feature="async"), 
@@ -173,6 +180,7 @@ impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T where T: ToS
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 macro_rules! str_impl {
     ($ty:ty) => {
@@ -218,6 +226,7 @@ macro_rules! str_impl {
 str_impl!(str);
 str_impl!(String);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod test {
@@ -325,6 +334,8 @@ mod test {
         v.sort();
         v
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     #[maybe_async_cfg::maybe(
         sync(key="sync", feature="sync", test), 
