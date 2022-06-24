@@ -28,6 +28,12 @@ async-attributes = "1.1.2"
 pretty_assertions = "^1.0.0"
 serial_test = "^0.5.1"
 
+[package.metadata.docs.rs]
+features = ["sync", "async", "tokio"]
+
+[badges.maintenance]
+status = "actively-developed"
+
 [features]
 default = ["sync"]
 
