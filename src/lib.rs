@@ -5,7 +5,7 @@
 //! [![Build Status](https://github.com/nvksv/to-socket-addrs/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/nvksv/to-socket-addrs/actions)
 //! [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 //! [![Latest Version](https://img.shields.io/crates/v/to-socket-addrs.svg)](https://crates.io/crates/to-socket-addrs)
-//! [![maybe-async](https://docs.rs/to-socket-addrs/badge.svg)](https://docs.rs/to-socket-addrs)
+//! [![Docs](https://docs.rs/to-socket-addrs/badge.svg)](https://docs.rs/to-socket-addrs)
 //! 
 //! ## Usage
 //!
@@ -16,10 +16,13 @@
 //! to-socket-addrs = "0.2"
 //! ```
 //!
-//! After that, just use `ToSocketAddrsWithDefaultPort` instead of `ToSocketAddrs` and specify the
-//! default port number using `.with_default_port(...)` when creating a stream or listener.
+//! After that, just use `ToSocketAddrsWithDefaultPort` instead of `std::net::ToSocketAddrs` and 
+//! specify the default port number using `.with_default_port(...)` when creating a stream or
+//! listener.
 //! 
-//! Asynchronous 
+//! Asynchronous analogs are also supported: 
+//!     - use `ToSocketAddrsWithDefaultPortAsync` instead of `async_std::net::ToSocketAddrs`,
+//!     - use `ToSocketAddrsWithDefaultPortTokio` instead of `tokio::net::ToSocketAddrs`
 //!
 //! ## Explanation
 //!
@@ -71,7 +74,8 @@ maybe_async_cfg::content! {
         async_std(sync="std", async, tokio="tokio"),
         ToSocketAddrs(use, sync, async="ToSocketAddrsAsync", tokio="ToSocketAddrsTokio"),
         ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync", tokio="ToSocketAddrsWithDefaultPortTokio"),
-        into_vec(fn, tokio="into_vec_tokio"),
+        into_vec4(fn, tokio="into_vec4_tokio"),
+        into_vec6(fn, tokio="into_vec6_tokio"),
     )
 )]
 
@@ -227,8 +231,30 @@ mod test {
         async(key="async", feature="async"), 
     )]
     #[maybe_async_cfg::only_if(sync)]
-    fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
-        let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().unwrap().map(|a| a.to_string()).collect();
+    fn into_vec4<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = addr
+            .with_default_port(default_port)
+            .to_socket_addrs()
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V4(_) = a {Some(a.to_string())} else {None})
+            .collect();
+        v.sort();
+        v
+    }
+
+    #[maybe_async_cfg::maybe(
+        sync(key="sync", feature="sync"),
+        async(key="tokio", feature="tokio"), 
+        async(key="async", feature="async"), 
+    )]
+    #[maybe_async_cfg::only_if(sync)]
+    fn into_vec6<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = addr
+            .with_default_port(default_port)
+            .to_socket_addrs()
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V6(_) = a {Some(a.to_string())} else {None})
+            .collect();
         v.sort();
         v
     }
@@ -239,8 +265,32 @@ mod test {
         async(key="tokio", feature="tokio"), 
     )]
     #[maybe_async_cfg::only_if(async)]
-    async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
-        let mut v: Vec<String> = addr.with_default_port(default_port).to_socket_addrs().await.unwrap().map(|a| a.to_string()).collect();
+    async fn into_vec4<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = addr
+            .with_default_port(default_port)
+            .to_socket_addrs()
+            .await
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V4(_) = a {Some(a.to_string())} else {None})
+            .collect();
+        v.sort();
+        v
+    }
+
+    #[maybe_async_cfg::maybe(
+        sync(key="sync", feature="sync"),
+        async(key="async", feature="async"), 
+        async(key="tokio", feature="tokio"), 
+    )]
+    #[maybe_async_cfg::only_if(async)]
+    async fn into_vec6<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = addr
+            .with_default_port(default_port)
+            .to_socket_addrs()
+            .await
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V6(_) = a {Some(a.to_string())} else {None})
+            .collect();
         v.sort();
         v
     }
@@ -251,8 +301,28 @@ mod test {
         async(key="tokio", feature="tokio"), 
     )]
     #[maybe_async_cfg::only_if(tokio)]
-    async fn into_vec<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
-        let mut v: Vec<String> = tokio::net::lookup_host(addr.with_default_port(default_port)).await.unwrap().map(|a| a.to_string()).collect();
+    async fn into_vec4<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = tokio::net::lookup_host(addr.with_default_port(default_port))
+            .await
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V4(_) = a {Some(a.to_string())} else {None})
+            .collect();
+        v.sort();
+        v
+    }
+
+    #[maybe_async_cfg::maybe(
+        sync(key="sync", feature="sync"),
+        async(key="async", feature="async"), 
+        async(key="tokio", feature="tokio"), 
+    )]
+    #[maybe_async_cfg::only_if(tokio)]
+    async fn into_vec6<A: ToSocketAddrsWithDefaultPort>(addr: A, default_port: u16) -> Vec<String> {
+        let mut v: Vec<String> = tokio::net::lookup_host(addr.with_default_port(default_port))
+            .await
+            .unwrap()
+            .filter_map(|a| if let SocketAddr::V6(_) = a {Some(a.to_string())} else {None})
+            .collect();
         v.sort();
         v
     }
@@ -264,9 +334,9 @@ mod test {
     )]
     async fn ipv4() {
         // IPv4 without port
-        assert_eq!(into_vec("8.8.8.8", 443).await,            ["8.8.8.8:443"]);
+        assert_eq!(into_vec4("8.8.8.8", 443).await,            ["8.8.8.8:443"]);
         // IPv4 with port
-        assert_eq!(into_vec("8.8.8.8:8080", 443).await,       ["8.8.8.8:8080"]);
+        assert_eq!(into_vec4("8.8.8.8:8080", 443).await,       ["8.8.8.8:8080"]);
     }
 
     #[maybe_async_cfg::maybe(
@@ -276,9 +346,9 @@ mod test {
     )]
     async fn ipv6() {
         // IPv6 without port
-        assert_eq!(into_vec("::1", 80).await,                 ["[::1]:80"]);
-        assert_eq!(into_vec("[::1]", 80).await,               ["[::1]:80"]);
-        assert_eq!(into_vec("[::1]:31337", 80).await,         ["[::1]:31337"]);
+        assert_eq!(into_vec6("::1", 80).await,                 ["[::1]:80"]);
+        assert_eq!(into_vec6("[::1]", 80).await,               ["[::1]:80"]);
+        assert_eq!(into_vec6("[::1]:31337", 80).await,         ["[::1]:31337"]);
     }
 
     #[maybe_async_cfg::maybe(
@@ -288,13 +358,13 @@ mod test {
     )]
     async fn dns_ipv4() {
         // DNS without port (must be resolved to IPv4)
-        assert_eq!(into_vec("dns.google", 5353).await,        ["8.8.4.4:5353", "8.8.8.8:5353"]);
-        assert_eq!(into_vec("dns.quad9.net", 53).await,       ["149.112.112.112:53", "9.9.9.9:53"]);
-        assert_eq!(into_vec("dns11.quad9.net", 3389).await,   ["149.112.112.11:3389", "9.9.9.11:3389"]);
+        assert_eq!(into_vec4("dns.google", 5353).await,        ["8.8.4.4:5353", "8.8.8.8:5353"]);
+        assert_eq!(into_vec4("dns.quad9.net", 53).await,       ["149.112.112.112:53", "9.9.9.9:53"]);
+        assert_eq!(into_vec4("dns11.quad9.net", 3389).await,   ["149.112.112.11:3389", "9.9.9.11:3389"]);
         // DNS with port (must be resolved to IPv4)
-        assert_eq!(into_vec("dns.google:53", 8080).await,     ["8.8.4.4:53", "8.8.8.8:53"]);
-        assert_eq!(into_vec("dns.quad9.net:80", 53).await,    ["149.112.112.112:80", "9.9.9.9:80"]);
-        assert_eq!(into_vec("dns11.quad9.net:21", 3389).await,["149.112.112.11:21", "9.9.9.11:21"]);
+        assert_eq!(into_vec4("dns.google:53", 8080).await,     ["8.8.4.4:53", "8.8.8.8:53"]);
+        assert_eq!(into_vec4("dns.quad9.net:80", 53).await,    ["149.112.112.112:80", "9.9.9.9:80"]);
+        assert_eq!(into_vec4("dns11.quad9.net:21", 3389).await,["149.112.112.11:21", "9.9.9.11:21"]);
     }
 
     #[maybe_async_cfg::maybe(
@@ -305,9 +375,9 @@ mod test {
     #[cfg_attr(not(feature="test_dns_ipv6"), ignore)]
     async fn dns_ipv6() {
         // DNS without port (must be resolved to IPv6)
-        assert_eq!(into_vec("dns64.dns.google", 53).await,        ["[2001:4860:4860::6464]:53", "[2001:4860:4860::64]:53"]);
+        assert_eq!(into_vec6("dns64.dns.google", 53).await,        ["[2001:4860:4860::6464]:53", "[2001:4860:4860::64]:53"]);
         // DNS with port (must be resolved to IPv6)
-        assert_eq!(into_vec("dns64.dns.google:443", 53).await,    ["[2001:4860:4860::6464]:443", "[2001:4860:4860::64]:443"]);
+        assert_eq!(into_vec6("dns64.dns.google:443", 53).await,    ["[2001:4860:4860::6464]:443", "[2001:4860:4860::64]:443"]);
     }
 }
 
