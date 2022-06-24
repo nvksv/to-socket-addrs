@@ -1,4 +1,4 @@
-#![feature(doc_cfg)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! # to-socket-addrs
 //!  
 //! A small replacement for `std::net::ToSocketAddrs` for specifying addresses without a port.
@@ -107,9 +107,9 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, IpAddr, Ipv4Addr, Ipv6Add
 use async_std::net::ToSocketAddrs;
 
 #[maybe_async_cfg::maybe(
-    sync(key="sync", feature="sync", inner(doc(cfg(feature="sync")), doc="A trait to use instead of `std::net::ToSocketAddrs`")),
-    async(key="async", feature="async", inner(doc(cfg(feature="async")), doc="A trait to use instead of `async_std::net::ToSocketAddrs`")), 
-    async(key="tokio", feature="tokio", inner(doc(cfg(feature="tokio")), doc="A trait to use instead of `tokio::net::ToSocketAddrs`")), 
+    sync(key="sync", feature="sync", inner(cfg_attr(docsrs, doc(cfg(feature = "sync"))), doc="A trait to use instead of `std::net::ToSocketAddrs`")),
+    async(key="async", feature="async", inner(cfg_attr(docsrs, doc(cfg(feature = "async"))), doc="A trait to use instead of `async_std::net::ToSocketAddrs`")), 
+    async(key="tokio", feature="tokio", inner(cfg_attr(docsrs, doc(cfg(feature = "tokio"))), doc="A trait to use instead of `tokio::net::ToSocketAddrs`")), 
 )]
 pub trait ToSocketAddrsWithDefaultPort {
     type Inner: Sized + ToSocketAddrs;

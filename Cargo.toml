@@ -30,6 +30,7 @@ serial_test = "^0.5.1"
 
 [package.metadata.docs.rs]
 features = ["sync", "async", "tokio"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [badges.maintenance]
 status = "actively-developed"
