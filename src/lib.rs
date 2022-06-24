@@ -221,9 +221,8 @@ str_impl!(String);
 
 #[cfg(test)]
 mod test {
-    use pretty_assertions::assert_eq;
-
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[maybe_async_cfg::maybe(
         sync(key="sync", feature="sync"),
