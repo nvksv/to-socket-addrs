@@ -20,9 +20,9 @@
 //! specify the default port number using `.with_default_port(...)` when creating a stream or
 //! listener.
 //! 
-//! Asynchronous analogs are also supported: 
-//!     - use `ToSocketAddrsWithDefaultPortAsync` instead of `async_std::net::ToSocketAddrs`,
-//!     - use `ToSocketAddrsWithDefaultPortTokio` instead of `tokio::net::ToSocketAddrs`
+//! Asynchronous analogs are also supported:
+//! - use `ToSocketAddrsWithDefaultPortAsync` instead of `async_std::net::ToSocketAddrs`,
+//! - use `ToSocketAddrsWithDefaultPortTokio` instead of `tokio::net::ToSocketAddrs`.
 //!
 //! ## Explanation
 //!
