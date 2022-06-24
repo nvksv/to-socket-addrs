@@ -15,6 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose  --features="sync async tokio"
     - name: Run tests
       run: cargo test --verbose --features="sync async tokio test_dns_ipv6"

@@ -3,7 +3,7 @@ name = "to-socket-addrs"
 version = "0.2.0"
 edition = "2021"
 authors = [ "Sergey V. Kokorin <nvksv@nvksv.ru>" ]
-description = "A small std::net::ToSocketAddrs replacement to specify addresses without port"
+description = "A small ToSocketAddrs replacement to specify addresses without port"
 repository = "https://github.com/nvksv/to-socket-addrs/"
 homepage = "https://github.com/nvksv/to-socket-addrs/"
 documentation = "https://docs.rs/to-socket-addrs/"
@@ -29,7 +29,7 @@ pretty_assertions = "^1.0.0"
 serial_test = "^0.5.1"
 
 [features]
-default = ["sync", "async", "tokio"]
+default = ["sync"]
 
 sync = []
 async = ["dep:async-std"]
